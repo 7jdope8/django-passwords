@@ -3,7 +3,7 @@ import string
 
 from django.core.exceptions import ValidationError
 from django.utils.translation import ugettext_lazy as _
-from django.utils.encoding import smart_unicode
+from django.utils.encoding import smart_text
 from django.conf import settings
 
 COMMON_SEQUENCES = [
@@ -23,8 +23,9 @@ PASSWORD_MIN_LENGTH = getattr(settings, "PASSWORD_MIN_LENGTH", 6)
 PASSWORD_MAX_LENGTH = getattr(settings, "PASSWORD_MAX_LENGTH", None)
 PASSWORD_DICTIONARY = getattr(settings, "PASSWORD_DICTIONARY", None)
 PASSWORD_MATCH_THRESHOLD = getattr(settings, "PASSWORD_MATCH_THRESHOLD", 0.9)
-PASSWORD_COMMON_SEQUENCES =  getattr(settings, "PASSWORD_COMMON_SEQUENCES", COMMON_SEQUENCES)
+PASSWORD_COMMON_SEQUENCES = getattr(settings, "PASSWORD_COMMON_SEQUENCES", COMMON_SEQUENCES)
 PASSWORD_COMPLEXITY = getattr(settings, "PASSWORD_COMPLEXITY", None)
+
 
 class LengthValidator(object):
     message = _("Invalid Length (%s)")
@@ -43,6 +44,7 @@ class LengthValidator(object):
             raise ValidationError(
                 self.message % _("Must be %s characters or less") % self.max_length,
                 code=self.code)
+
 
 class ComplexityValidator(object):
     message = _("Must be more complex (%s)")
@@ -111,17 +113,17 @@ class BaseSimilarityValidator(object):
         m, n = len(needle), len(haystack)
 
         if m == 1:
-            if not needle in haystack:
+            if needle not in haystack:
                 return -1
         if not n:
             return m
 
-        row1 = [0] * (n+1)
-        for i in xrange(0,m):
-            row2 = [i+1]
-            for j in xrange(0,n):
-                cost = ( needle[i] != haystack[j] )
-                row2.append(min(row1[j+1]+1, row2[j]+1, row1[j]+cost))
+        row1 = [0] * (n + 1)
+        for i in xrange(0, m):
+            row2 = [i + 1]
+            for j in xrange(0, n):
+                cost = (needle[i] != haystack[j])
+                row2.append(min(row1[j + 1] + 1, row2[j] + 1, row1[j] + cost))
             row1 = row2
         return min(row1)
 
@@ -135,6 +137,7 @@ class BaseSimilarityValidator(object):
                     self.message % {"haystacks": ", ".join(self.haystacks)},
                     code=self.code)
 
+
 class DictionaryValidator(BaseSimilarityValidator):
     message = _("Based on a dictionary word.")
     code = "dictionary_word"
@@ -144,7 +147,7 @@ class DictionaryValidator(BaseSimilarityValidator):
         if dictionary:
             with open(dictionary) as dictionary:
                 haystacks.extend(
-                    [smart_unicode(x.strip()) for x in dictionary.readlines()]
+                    [smart_text(x.strip()) for x in dictionary.readlines()]
                 )
         if words:
             haystacks.extend(words)
@@ -154,7 +157,7 @@ class DictionaryValidator(BaseSimilarityValidator):
 class CommonSequenceValidator(BaseSimilarityValidator):
     message = _("Based on a common sequence of characters")
     code = "common_sequence"
-        
+
 validate_length = LengthValidator(PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH)
 complexity = ComplexityValidator(PASSWORD_COMPLEXITY)
 dictionary_words = DictionaryValidator(dictionary=PASSWORD_DICTIONARY)
